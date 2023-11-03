@@ -1,0 +1,2 @@
+SenselessSOQL.findTabDefinitionByDurableId();
+SenselessSOQL.findTabDefinitionBySObjectName();

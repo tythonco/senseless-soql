@@ -1,0 +1,27 @@
+<template>
+    <lightning-spinner
+        if:false={msg}
+        size="medium"
+        variant="brand"
+    >
+    </lightning-spinner>
+    <lightning-card
+        if:true={msg}
+    >
+        <div
+            class="slds-p-left_small"
+        >
+            <lightning-formatted-text
+                value={msg}
+            >
+            </lightning-formatted-text>
+            <lightning-button
+                label="Rerun"
+                onclick={handleRerun}
+                title="Rerun"
+                variant="brand"
+            >
+            </lightning-button>
+        </div>
+    </lightning-card>
+</template>
