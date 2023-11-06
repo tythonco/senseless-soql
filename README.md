@@ -6,6 +6,8 @@ This project is meant to accompany the Tython blog post [*Senseless SOQL*](https
 
 1. Run `sf project deploy start -d force-app/main -o [YourOrgAliasOrUsername]` to bring in all necessary metadata.
 
+2. Run `sf org assign permset -n SenselessSOQL -o [YourOrgAliasOrUsername]` to assign the project permission set to your user.
+
 ## Test
 
 1. Run `sf apex run -f anonApex.apex -o [YourOrgAliasOrUsername] > anonApex.log` to see output from an Anonymous Apex context
