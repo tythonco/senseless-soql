@@ -3,6 +3,7 @@ public with sharing class SenselessSOQL {
     private static PermissionSet ps = [SELECT Id FROM PermissionSet WHERE Name = 'SenselessSOQL'];
     // Tab setting name will be an id in an Anonymous Apex context while it will be an SObject name in a LWC context
     private static PermissionSetTabSetting tabSetting = [SELECT Id, Name FROM PermissionSetTabSetting WHERE ParentId = :ps.Id AND Visibility = 'DefaultOn' LIMIT 1];
+    private static String np = [SELECT NamespacePrefix FROM Organization].NamespacePrefix;
 
     @AuraEnabled
     public static String findTabDefinitionByDurableId() {
@@ -13,7 +14,7 @@ public with sharing class SenselessSOQL {
         if (!tabDefs.isEmpty()) {
             log += 'Found tab definition by matching TabDefinition.DurableId (' + tabDefs[0].DurableId + ') to PermissionSetTabSetting.Name (' + tabSetting.Name + ') even though ' + tabDefs[0].DurableId + ' != ' + tabSetting.Name + ' ¯\\_(ツ)_/¯\n';
             log += 'Searching for permission set tab setting where PermissionSetTabSetting.Name = ' + tabDefs[0].DurableId + '\n';
-            PermissionSetTabSetting tabSetting2 = findPermissionSetTabSettingByDurableId(tabDefs[0]);
+            PermissionSetTabSetting tabSetting2 = findPermissionSetTabSettingByDurableId(tabDefs[0].DurableId);
             if (tabSetting2 == null) {
                 log += 'No permission set tab setting found where PermissionSetTabSetting.Name = ' + tabDefs[0].DurableId + ' so it seems the automagic only works one way... ¯\\_(ツ)_/¯\n';
                 String customTabDefinitionPrefix = '01r'; // SObjectType CANNOT be queried within standard SOQL statement in Apex
@@ -38,15 +39,17 @@ public with sharing class SenselessSOQL {
         // Best for Anonymous Apex Context
         String log = '~~~ Searching for tab definition by SObjectName ~~~\n';
         log += 'Searching for tab definition where TabDefinition.SObjectName = PermissionSetTabSetting.Name (' + tabSetting.Name + ')\n';
-        List<TabDefinition> tabDefs = [SELECT Id, SObjectName, DurableId, Label FROM TabDefinition WHERE SobjectName = :tabSetting.Name LIMIT 1];
+        String tabSettingNameWithWildcardForNS = '%' + tabSetting.Name; // Ignore org namespace
+        List<TabDefinition> tabDefs = [SELECT Id, SObjectName, DurableId, Label FROM TabDefinition WHERE SobjectName LIKE :tabSettingNameWithWildcardForNS LIMIT 1];
         if (!tabDefs.isEmpty()) {
-            log += 'Found tab definition by matching TabDefinition.SObjectName (' + tabDefs[0].SObjectName + ') to PermissionSetTabSetting.Name (' + tabSetting.Name + ')\n';
-            log += 'Now running inverse search by matching PermissionSetTabSetting.Name to TabDefinition.SObjectName (' + tabDefs[0].SObjectName + ')\n';
-            PermissionSetTabSetting tabSetting2 = findPermissionSetTabSettingBySObjectName(tabDefs[0]);
+            String tabDefSObjectName = np != null ? tabDefs[0].SObjectName.replace(np + '__','') : tabDefs[0].SObjectName;
+            log += 'Found tab definition by matching TabDefinition.SObjectName (' + tabDefSObjectName + ') to PermissionSetTabSetting.Name (' + tabSetting.Name + ')\n';
+            log += 'Now running inverse search by matching PermissionSetTabSetting.Name to TabDefinition.SObjectName (' + tabDefSObjectName + ')\n';
+            PermissionSetTabSetting tabSetting2 = findPermissionSetTabSettingBySObjectName(tabDefSObjectName);
             if (tabSetting2 == null) {
-                log += 'No permission set tab setting found where PermissionSetTabSetting.Name = TabDefinition.SObjectName (' + tabDefs[0].SObjectName + ')\n';
+                log += 'No permission set tab setting found where PermissionSetTabSetting.Name = TabDefinition.SObjectName (' + tabDefSObjectName + ')\n';
             } else {
-                log += 'Found permission set tab setting by matching PermissionSetTabSetting.Name (' + tabSetting2.Name + ') to TabDefinition.SObjectName (' + tabDefs[0].SObjectName + ') meaning matching is bidirectional ✔\n';
+                log += 'Found permission set tab setting by matching PermissionSetTabSetting.Name (' + tabSetting2.Name + ') to TabDefinition.SObjectName (' + tabDefSObjectName + ') meaning matching is bidirectional ✔\n';
             }
         }
         else {
@@ -56,8 +59,8 @@ public with sharing class SenselessSOQL {
         return log + '\n';
     }
 
-    private static PermissionSetTabSetting findPermissionSetTabSettingBySObjectName(TabDefinition tabDef) {
-        List<PermissionSetTabSetting> tabSettings = [SELECT Id, Name FROM PermissionSetTabSetting WHERE Name = :tabDef.SObjectName LIMIT 1];
+    private static PermissionSetTabSetting findPermissionSetTabSettingBySObjectName(String sObjectName) {
+        List<PermissionSetTabSetting> tabSettings = [SELECT Id, Name FROM PermissionSetTabSetting WHERE Name = :sObjectName LIMIT 1];
         if (!tabSettings.isEmpty()) {
             return tabSettings[0];
         } else {
@@ -65,8 +68,8 @@ public with sharing class SenselessSOQL {
         }
     }
 
-    private static PermissionSetTabSetting findPermissionSetTabSettingByDurableId(TabDefinition tabDef) {
-        List<PermissionSetTabSetting> tabSettings = [SELECT Id, Name FROM PermissionSetTabSetting WHERE Name = :tabDef.DurableId LIMIT 1];
+    private static PermissionSetTabSetting findPermissionSetTabSettingByDurableId(String durableId) {
+        List<PermissionSetTabSetting> tabSettings = [SELECT Id, Name FROM PermissionSetTabSetting WHERE Name = :durableId LIMIT 1];
         if (!tabSettings.isEmpty()) {
             return tabSettings[0];
         } else {
