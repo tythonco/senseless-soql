@@ -10,6 +10,7 @@ server.key
 
 # Salesforce cache
 .sfdx/
+.sf/
 mdapioutput/
 
 # LWC VSCode autocomplete
